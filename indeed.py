@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 
 LIMIT = 10
-URL = f"https://kr.indeed.com/jobs?q=Python&rqf=1&limit={LIMIT}"
+URL = f"https://kr.indeed.com/jobs?q=python&rqf=1&limit={LIMIT}"
 
 def extract_indeed_pages():    
     # html을 요청
@@ -22,10 +22,24 @@ def extract_indeed_pages():
     
     return max_page
 
-def extract_indeed_jobs(last_pages):
+def extract_jobs(html):
+    title = html.find("h2", {"class": "jobTitle"}).find("span", title=True).string
+    company = html.find("span", {"class": "companyName"}).string
+    location = html.find("div", {"class": "companyLocation"}).string
+    job_id = html["data-jk"]
+
+    return {"title": title, "company": company, "location": location, "link": f"https://kr.indeed.com/jobs?q=python&l&vjk={job_id}"}
+
+def extract_indeed_jobs(last_page):
     jobs = []
-    for page in range(last_pages):
+    for page in range(last_page):
         result = requests.get(f"{URL}&start={LIMIT*page}")
-        print(result.status_code)
+        soup = BeautifulSoup(result.text, "html.parser")
+        # 직업 목록을 불러옴
+        results = soup.find_all("a", {"class": "fs-unmask"})
         
+        for result in results:
+            job = extract_jobs(result)
+            jobs.append(job)
+            
     return jobs
